@@ -1,5 +1,6 @@
 # Student-Retention-Analysis
 
+This project is written in R.
 
 This is a course project, and groups will be ranked on Kaggle. Our prediction result ranked 2nd out of 6 groups.
 
