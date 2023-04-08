@@ -7,4 +7,4 @@ The main file of analyzing is written in qmd. We've tried 2 ways of feature engi
 
 The models we've tried include Naive Bayes, Decision Tree, KNN, LDA, Logistic, SVM, Bagging, Ranger. And Ranger seemed to be the best.
 
-Details could be found in [Student Retention Analysis Presentation.ppt]. Data dictionary could be found in /Student Retention Challenge Data/Data Dictionary/.
+Details could be found in [Student Retention Analysis Presentation.pdf]. Data dictionary could be found in /Student Retention Challenge Data/Data Dictionary/.
