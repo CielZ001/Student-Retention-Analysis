@@ -1,5 +1,4 @@
 # Student-Retention-Analysis
-Analysis students' data and predict who will drop out
 
 
 This is a course project, and groups will be ranked on Kaggle. Our prediction result ranked 2nd out of 6 groups.
