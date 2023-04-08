@@ -1,0 +1,739 @@
+---
+title: "Midterm Project"
+format: html
+editor: Wenyu Guo, Xinwen Wang, Xi Zhao, Huipeng Chen, Yue Shen
+---
+
+```{r setup, echo = FALSE, include=FALSE}
+
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+library(tidyverse)
+library(caret)
+library(corrplot)
+library(pastecs)
+library(ggplot2)
+library(recipes)
+library(zipcodeR)
+# library(pROC)
+set.seed(12345)
+# 先保留文档路径，因为之后需要跑出来
+
+```
+
+# Introduction
+
+
+
+# Exploratory Data Analysis 
+
+```{r}
+#reading file from local training data
+TrainLabels<-read_csv("/Users/chenhuipeng/Downloads/HUDK4050-Method in data mining/Project/Train.csv")
+
+#storing data into  variable, and find correlation between each variable column.    
+d <- TrainLabels %>% 
+  cor %>%
+  as.data.frame %>%
+  select(Dropout) 
+
+#Then storing highest eight correlation variables into a another new variable.
+d1 <- TrainLabels %>%
+  select(Age,ReferDevEnglish,ReferDevMath,MathPlacement,LastTermGPA,LastCumGPA,avgTermGPA,avgCumGPA,
+         AwarReceived,EngPlacement,TotalLoan, TotalGrant,Dropout)  %>%
+  as.data.frame 
+
+#Using correlation to draw correlation matrix.
+corre <- round(cor(TrainLabels),3)
+corre
+corrplot(corre,order="hclust",method = "square", number.cex=0.9)
+
+cor8 <- round(cor(d1),3)
+corrplot(cor8,order="hclust",method = "square", number.cex=0.9)
+
+# summary of the variables
+
+summary(d1)
+
+#Using boxplot graphs to detect any outlines that exist in the variables dataset that will be considered for input of modeling. 
+b1<- ggplot(TrainLabels,aes(Age)) +
+  geom_boxplot()+ggtitle("Boxplot of Age")
+b1
+
+
+b2 <- ggplot(TrainLabels,aes(ReferDevEnglish)) +
+  geom_boxplot()+ggtitle("Boxplot of ReferDevEnglish")
+b2
+
+
+b3 <- ggplot(TrainLabels,aes(ReferDevMath)) +
+  geom_boxplot()+ggtitle("Boxplot of ReferDevMath")
+b3
+
+
+b4 <- ggplot(TrainLabels,aes(MathPlacement)) +
+  geom_boxplot()+ggtitle("Boxplot of MathPlacement")
+b4
+
+
+b5 <- ggplot(TrainLabels,aes(AwarReceived)) +
+  geom_boxplot()+ggtitle("Boxplot of AwarReceived")
+b5
+
+
+b6 <- ggplot(TrainLabels,aes(EngPlacement)) +
+  geom_boxplot()+ggtitle("Boxplot of EngPlacement")
+b6
+
+
+b7 <- ggplot(TrainLabels,aes(TotalGrant)) +
+  geom_boxplot()+ggtitle("Boxplot of TotalGrant")
+b7
+
+
+b8 <- ggplot(TrainLabels,aes(LastTermGPA)) +
+  geom_boxplot()+ggtitle("Boxplot of LastTermGPA")
+b8
+
+b9 <- ggplot(TrainLabels,aes(LastCumGPA)) +
+  geom_boxplot()+ggtitle("Boxplot of LastCumGPA")
+b9
+
+b10 <- ggplot(TrainLabels,aes(avgCumGPA)) +
+  geom_boxplot()+ggtitle("Boxplot of avgCumGPA")
+b10
+
+
+b11 <- ggplot(TrainLabels,aes(avgTermGPA)) +
+  geom_boxplot()+ggtitle("Boxplot of avgTermGPA")
+b11
+
+
+b12 <- ggplot(TrainLabels,aes(TotalLoan)) +
+  geom_boxplot()+ggtitle("Boxplot of TotalLoan")
+b12
+
+#Using histogram to detect any abnormal distribution of variables dataset that will be considered for input of modeling.  
+
+p1<-ggplot(TrainLabels, aes(x=AwarReceived)) + 
+  geom_bar()+ 
+  ggtitle("Barplot of award received")
+p1
+
+p2<-ggplot(TrainLabels, aes(x=EngPlacement)) + 
+  geom_bar()+ 
+  ggtitle("Barplot of English Placement")
+p2
+
+p3<-ggplot(TrainLabels, aes(x=Age)) + 
+  geom_histogram()+ 
+  ggtitle("Histogram of age")
+p3
+
+p4<-ggplot(TrainLabels, aes(x=TotalGrant)) + 
+  geom_histogram()+ 
+  ggtitle("Histogram of Total Grant")
+p4
+
+p5<-ggplot(TrainLabels, aes(x=ReferDevMath)) + 
+  geom_bar()+ 
+  ggtitle("Barplot of ReferDevMath")
+p5
+
+p6<-ggplot(TrainLabels, aes(x=ReferDevEnglish)) + 
+  geom_bar()+ 
+  ggtitle("Barplot of ReferDevEnglish")
+p6
+
+p7<-ggplot(TrainLabels, aes(x=MathPlacement)) + 
+  geom_bar()+ 
+  ggtitle("Barplot of MathPlacement")
+p7
+
+p8<-ggplot(TrainLabels, aes(x=LastTermGPA)) + 
+  geom_histogram()+ 
+  ggtitle("Histogram of Last Term GPA")
+p8
+
+p9<-ggplot(TrainLabels, aes(x=LastCumGPA)) + 
+  geom_histogram()+ 
+  ggtitle("Histogram of Last Cum GPA")
+p9
+
+p10<-ggplot(TrainLabels, aes(x=avgTermGPA)) + 
+  geom_histogram()+ 
+  ggtitle("Histogram of Average Term GPA")
+p10
+
+p11<-ggplot(TrainLabels, aes(x=avgCumGPA)) + 
+  geom_histogram()+ 
+  ggtitle("Histogram of Average Cum GPA")
+p11
+
+p12<-ggplot(TrainLabels, aes(x=TotalLoan)) + 
+  geom_histogram()+ 
+  ggtitle("Histogram of Total Loan")
+p12
+
+```
+
+
+# Method1
+Description:
+
+
+## Join Data
+```{r}
+# Set working directory
+setwd('F:\\Mine\\0Mine\\TC-22fall\\HUDK4050 - Core Mthds Educ Data Mining\\Kaggle\\DATA PROCESS\\DATA\\SRCD\\Student Retention Challenge Data')
+
+TestIDs <- read.csv("Test Data\\TestIDs.csv")
+TrainLabels <- read.csv("DropoutTrainLabels.csv")
+
+
+# Read student's progress data
+filenames <- dir("Student Progress Data") 
+progress.raw <- data.frame() 
+for (i in filenames){ 
+  path <- paste0("Student Progress Data","\\",i) 
+  progress.raw <- rbind(progress.raw,read.csv(path))
+}
+
+# Read student's static data
+filenames <- dir("Student Static Data")
+static.raw <- data.frame() 
+for (i in filenames){ 
+  path <- paste0("Student Static Data","\\",i) 
+  static.raw <- rbind(static.raw,read.csv(path))
+}
+
+# Read student's financial aid data
+aid.raw <- read_excel("Student Financial Aid Data\\2011-2017_Cohorts_Financial_Aid_and_Fafsa_Data.xlsx")
+
+# str(progress.raw)
+
+# Cleaning progress data
+progress.pre <- progress.raw %>% 
+  mutate_if(is.numeric,function(x){ifelse(x<0,NA,x)}) %>% 
+  arrange(StudentID,AcademicYear,Term) %>% 
+  group_by(StudentID) %>% 
+  mutate(ReferDevMath=ifelse(sum(!is.na(CompleteDevMath)),1L,0L)) %>%   # 创建新变量是否推荐发展数学
+  mutate(FinishDevMath=ifelse(sum(CompleteDevMath,na.rm=T)==1,1L,0L)) %>%  # 是否完成发展数学
+  mutate(ReferDevEnglish=ifelse(sum(!is.na(CompleteDevEnglish)),1L,0L)) %>%  # 创建新变量是否推荐发展英语
+  mutate(FinishDevEnglish=ifelse(sum(CompleteDevEnglish,na.rm=T)==1,1L,0L)) %>%  # 是否完成发展英语
+  mutate(DoubleDegree=ifelse(sum(!is.na(Major2)),1L,0L)) %>% # 创建新变量是否辅修双学位
+  mutate(Major1=factor(Major1)) %>%  # 将主修专业转为因子变量
+  mutate(AwarReceived=ifelse(sum(Complete1,na.rm=TRUE),1L,0L)) %>%  # 创建新变量是否获得证书
+  mutate(LastTransferIntent=last(TransferIntent,1)) %>% # 创建新变量最近一次转专业意向
+  mutate(LastDegreeTypeSought=last(DegreeTypeSought,1)) %>% # 创建新变量最近一次转专业意向
+  mutate(LastTermGPA=last(TermGPA)) %>%  # 创建新变量最近一次TermGPA
+  mutate(LastCumGPA=last(CumGPA)) %>%    # 创建新变量最近一次CumGPA
+  mutate(avgTermGPA=mean(TermGPA,na.rm=T)) %>%  # 创建新变量平均TermGPA
+  mutate(avgCumGPA =mean(CumGPA ,na.rm=T)) %>%  # 创建新变量平均CumGPA
+  dplyr::select(StudentID,ReferDevMath,FinishDevMath,ReferDevEnglish,FinishDevEnglish,
+                DoubleDegree,Major1,AwarReceived,LastTransferIntent,LastDegreeTypeSought,
+                LastTermGPA,LastCumGPA,avgTermGPA,avgCumGPA) %>% 
+  ungroup() %>% 
+  distinct(StudentID,.keep_all = TRUE) 
+  
+# Cleaning static data
+static.pre <-static.raw %>%
+  mutate_if(is.numeric,function(x){ifelse(x<0,NA,x)}) %>%
+  distinct(StudentID,.keep_all = T) %>% 
+  mutate(Zip=sprintf("%05d", Zip)) %>%  # 自动补齐为5位zip
+  mutate(Distance=zip_distance("08608",Zip)$distance) %>%  # 计算地理距离
+  mutate(Distance=ifelse(is.na(Distance),5000,Distance)) %>% # 空值为国际生，距离为5000
+  mutate(Age=as.numeric(substr(RegistrationDate,1,4))-BirthYear) %>%  # 计算注册年龄
+  dplyr::select(-c(2:10))
+
+# Cleaning financial aid data
+aid.pre <- aid.raw %>% 
+  mutate_if(is.numeric,function(x){ifelse(x<0,NA,x)}) %>%
+  rename(StudentID=`ID with leading`) %>%
+  mutate(StudentID=as.integer(substr(StudentID,2,7))) %>% 
+  rename(MaritalStatus=`Marital Status`) %>% 
+  rename(AdjustedGrossIncome=`Adjusted Gross Income`) %>% 
+  rename(ParentAdjustedGrossIncome=`Parent Adjusted Gross Income`) %>% 
+  rename(FatherHighestGradeLevel=`Father's Highest Grade Level`) %>%
+  rename(MotherHighestGradeLevel=`Mother's Highest Grade Level`) %>%
+  rowwise() %>% 
+  mutate(TotalLoan= sum(c_across(ends_with("Loan")),na.rm=TRUE)) %>% # 加总loan
+  mutate(TotalScholarship= sum(c_across(ends_with("Scholarship")),  # 加总scholarship
+                               na.rm=TRUE)) %>%                    
+  mutate(TotalWork_Study= sum(c_across(ends_with("Work/Study")),    # 加总 work/study
+                               na.rm=TRUE)) %>% 
+  mutate(TotalGrant= sum(c_across(ends_with("Grant")),             #加总grant
+                              na.rm=TRUE)) %>%
+  dplyr::select(StudentID,MaritalStatus,AdjustedGrossIncome,
+                ParentAdjustedGrossIncome,FatherHighestGradeLevel,
+                MotherHighestGradeLevel,Housing,TotalLoan,
+                TotalScholarship,TotalWork_Study,TotalGrant)
+
+# Merging data
+merge.data <- progress.pre %>% 
+  inner_join(static.pre,by="StudentID") %>% 
+  inner_join(aid.pre,by="StudentID") %>% 
+  mutate_if(is.integer,as.factor) %>%
+  mutate_if(is.character,as.factor) %>%
+  mutate(StudentID=as.integer(as.character(StudentID)))
+
+# Split data to train data and test data
+Kaggletest <- TestIDs %>% 
+  inner_join(merge.data,by="StudentID")
+KaggleTrain <- TrainLabels %>% 
+  inner_join(merge.data,by="StudentID")
+
+# Feature Engineering
+# Visualizing Missing Data
+sum(is.na(KaggleTrain))
+KaggleTrain %>%
+  is.na() %>%
+  reshape2::melt() %>%
+  ggplot(aes(Var2, Var1, fill=value)) + 
+  geom_raster() + 
+  coord_flip() +
+  scale_y_continuous(NULL, expand = c(0, 0)) +
+  scale_fill_grey(name = "", labels = c("Present", "Missing")) +
+  xlab("Observation") +
+  theme(axis.text.y  = element_text(size = 4))
+
+vis_miss(KaggleTrain, sort = TRUE)  # 显示缺失比例
+### 删除缺失比例超过30%的变量
+missingCol <- which(apply(KaggleTrain,2,
+                                function(x){sum(is.na(x)/length(x))})>0.3)
+KaggleTrain <- KaggleTrain[,-missingCol]
+
+## recipes provides a convenient way to create 
+## feature engineering blue prints
+blueprint <- recipe(StudentID+Dropout ~ ., data = KaggleTrain) %>%
+  step_nzv(all_predictors()) %>%  # Remove near-zero variance features
+  step_impute_knn(all_predictors()) %>%  # KNN imputation
+  step_center(all_numeric(), -all_outcomes()) %>%  #Standardization
+  step_scale(all_numeric(), -all_outcomes()) 
+prepare <- prep(blueprint, training = KaggleTrain)
+baked_train <- bake(prepare, new_data = KaggleTrain)
+baked_test <- bake(prepare, new_data = Kaggletest)
+
+# str(KaggleTrain)
+
+# write.csv(baked_train,"baked_train.csv")
+# write.csv(baked_test,"baked_test.csv")
+
+# str(baked_train)
+# Clean data for lda, knn, and nb model
+train_data <- read_csv("baked_train.csv")
+train_data <- mutate(train_data, MaritalStatus = recode_factor(MaritalStatus, "Married"="1", "Single" = "0", "Separated" = "2", "Divorced" = "3"))
+train_data <- mutate(train_data, FatherHighestGradeLevel = recode_factor(FatherHighestGradeLevel, "Middle School"="1", "Unknown" = "0", "High School" = "2", "College" = "3"))
+train_data <- mutate(train_data, MotherHighestGradeLevel = recode_factor(MotherHighestGradeLevel, "Middle School"="1", "Unknown" = "0", "High School" = "2", "College" = "3"))
+train_data$Housing <- as.character(train_data$Housing)
+train_data$Housing[train_data$Housing=="On Campus Housing"]<-0
+train_data$Housing[train_data$Housing=="Off Campus"]<-1
+train_data$Housing[train_data$Housing=="With Parent"]<-2
+train_data$Housing <- as.numeric(train_data$Housing)
+train_data$MaritalStatus <- as.numeric(train_data$MaritalStatus)
+train_data$FatherHighestGradeLevel <- as.numeric(train_data$FatherHighestGradeLevel)
+train_data$MotherHighestGradeLevel <- as.numeric(train_data$MotherHighestGradeLevel)
+# print(train_data)
+
+test_data <- read_csv("baked_test.csv")
+test_data <- mutate(test_data, MaritalStatus = recode_factor(MaritalStatus, "Married"="1", "Single" = "0", "Separated" = "2", "Divorced" = "3"))
+test_data <- mutate(test_data, FatherHighestGradeLevel = recode_factor(FatherHighestGradeLevel, "Middle School"="1", "Unknown" = "0", "High School" = "2", "College" = "3"))
+test_data <- mutate(test_data, MotherHighestGradeLevel = recode_factor(MotherHighestGradeLevel, "Middle School"="1", "Unknown" = "0", "High School" = "2", "College" = "3"))
+test_data$Housing <- as.character(test_data$Housing)
+test_data$Housing[test_data$Housing=="On Campus Housing"]<-0
+test_data$Housing[test_data$Housing=="Off Campus"]<-1
+test_data$Housing[test_data$Housing=="With Parent"]<-2
+test_data$Housing <- as.numeric(test_data$Housing)
+test_data$MaritalStatus <- as.numeric(test_data$MaritalStatus)
+test_data$FatherHighestGradeLevel <- as.numeric(test_data$FatherHighestGradeLevel)
+test_data$MotherHighestGradeLevel <- as.numeric(test_data$MotherHighestGradeLevel)
+# print(test_data)
+
+train_data$Dropout <- as.factor(ifelse(train_data$Dropout=="Dropout","Dropout", "In"))
+# str(train_data)
+baked_train$Dropout <- as.factor(ifelse(baked_train$Dropout==1,"Dropout", "In"))
+# str(train_data)
+
+```
+
+## Modelling
+
+- Our choice of models: Because the goal is to classify and predict whether students will dropout or not as accurate as possible, so we tried 6 classification models and 2 ensemble models.
+
+- The models we have used: Decision Tree Model, SVM Model, Logistic Model, LDA Model, KNN Model, Naive Bayes Model, Ranger Model (ensemble model) and Bagging Model (ensemble model).
+
+- Modelling issues:
+1. Underfitting: After trying out these 8 models, we found the F1 means was around 0.88. We thought it was because some variables has negative influences which led to underfitting issues, so we tried to reduce the variables and add some variables. However, based on our data joining method, it was hard to add more variables, so we tried another method. 
+2. Data Leakage: We have noticed that there is a data leakage issue, which is the variable Complete1, and this variable won't appear in the real-world data, 
+
+- Difficulties encountered:
+1. Different models need different input: Errors came out when we input cleaned data to LDA, KNN and Naive Bayes models but everything worked well for other models. To solve this issue, we turned factor and character variables into numeric variables and then things went well.
+2. Time-consuming model: We found that Random Forest Model was quite time-consuming, so we tried Ranger Model and Bagging Model instead.
+
+```{r}
+set.seed(12345)
+## MLE
+intrain <- createDataPartition(baked_train$Dropout,p=0.75,list = FALSE)
+trctrl <- trainControl(method = "cv", number = 10)
+train <- baked_train[intrain,]
+test <- baked_train[-intrain,]
+
+# str(train)
+## Decision tree model
+fit.rf <- train(Dropout ~ .-StudentID, 
+                     data = train,
+                     method = "rpart",
+                     trControl=trctrl)
+fit.rf
+pred.rf <- predict(fit.rf,test,type="raw")
+pred.rf
+confusionMatrix(pred.rf,test$Dropout)
+F_meas(pred.rf,test$Dropout)
+treeImp <- varImp(fit.rf, scale = FALSE)
+treeImp
+
+## SVM model
+grid <- expand.grid(C=c(.1,1,5,10), degree=c(2,3,4), scale=c(1,2))
+fit.svm <- train(Dropout ~.-StudentID,method="svmPoly",
+                   tuneGrid=grid, trControl=trctrl,data=train)
+pred.svmPo <- predict(fit.svm,test)
+confusionMatrix(pred.svmPo,test$Dropout)
+
+svmmodel <- train(Dropout ~ .-StudentID, method="svmRadial",sigma =.2,data=train)
+pred.svm <- predict(svmmodel, test)
+confusionMatrix(pred.svm,test$Dropout)
+F_meas(pred.svm,test$Dropout)
+
+## Logistic model
+logitmodel <- train(Dropout ~ .-StudentID, method ="glm", preProcess=c('scale', 'center'), 
+                    data=train, 
+                    family=binomial(link='logit'))
+summary(logitmodel)
+pred.logit <- predict(logitmodel, test)
+confusionMatrix(pred.logit,test$Dropout)
+F_meas(pred.logit,test$Dropout)
+
+# Dropout <- predict(logitmodel, baked_test)
+# Dropout
+# 
+# test_predicted <- test_data %>% mutate(Dropout) %>% select(StudentID, Dropout)
+# test_predicted
+# test_predicted$Dropout <- ifelse(test_predicted$Dropout=="Dropout", 1, 0)
+# write_csv(test_predicted, "predicted_logit.csv")
+# f1.logit <- F_meas(pred.logit,test$Dropout)
+
+# random forest
+rangermodel <- train(Dropout ~.-StudentID , 
+                    data = train,
+                    method = "ranger",
+                    trControl=trctrl)
+pred_ranger <- predict(rangermodel,test)
+confusionMatrix(pred_ranger,test$Dropout)
+F_meas(pred_ranger, test$Dropout)
+
+Dropout <- predict(rangermodel, test_data)
+Dropout
+
+test_predicted <- test_data %>% mutate(Dropout) %>% select(StudentID, Dropout)
+# Dropout = ifelse(predictions_test=="Dropout", 1,0)
+test_predicted
+test_predicted$Dropout <- ifelse(test_predicted$Dropout=="Dropout", 1, 0)
+write_csv(test_predicted, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/predicted_ranger.csv")
+
+# bagging
+bag_fit <- train(Dropout ~.-StudentID, data = train, method = "treebag",
+                 trControl=trctrl)
+bag_fit
+pred_bag <- predict(bag_fit, newdata = test)
+confusionMatrix(pred_bag,test$Dropout)
+#Calculate performance measures
+postResample(predictions,test$Dropout)
+#To see the importance of the variables
+bagImp <- varImp(bag_fit, scale=TRUE)
+bagImp
+F_meas(pred_bag, test$Dropout)
+
+Dropout <- predict(bag_fit, test_data)
+Dropout
+
+test_predicted <- test_data %>% mutate(Dropout) %>% select(StudentID, Dropout)
+# Dropout = ifelse(predictions_test=="Dropout", 1,0)
+test_predicted
+test_predicted$Dropout <- ifelse(test_predicted$Dropout=="Dropout", 1, 0)
+write_csv(test_predicted, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/predicted_bag.csv")
+
+set.seed(12345)
+intrain <- createDataPartition(train_data$Dropout,p=0.75,list = FALSE)
+trctrl <- trainControl(method = "cv", number = 10)
+train_d <- train_data[intrain,]
+test_d <- train_data[-intrain,]
+# str(train_data)
+
+# LDA
+ldamodel <- train(Dropout ~ .-StudentID, method ="lda",data=train_d)
+pred.lda <- predict(ldamodel, test_d)
+confusionMatrix(pred.lda,test_d$Dropout)
+F_meas(pred.lda,test_d$Dropout)
+f1.lda <- F_meas(pred.lda,test_d$Dropout)
+
+# NB
+nbmodel <- train(Dropout ~ .-StudentID, method ="nb",data=train_d)
+pred.nb <- predict(nbmodel, test_d)
+confusionMatrix(pred.nb,test_d$Dropout)
+F_meas(pred.nb,test_d$Dropout)
+f1.nb <- F_meas(pred.nb,test_d$Dropout)
+
+# KNN
+knnmodel <- train(Dropout ~ .-StudentID, method ="knn",data=train_d,
+                  trControl=trctrl, preProcess=c('scale', 'center'))
+pred.knn <- predict(knnmodel, test_d)
+confusionMatrix(pred.knn,test_d$Dropout)
+F_meas(pred.knn,test_d$Dropout)
+f1.knn <- F_meas(pred.knn,test_d$Dropout)
+
+```
+
+## Conclusion
+- Models' performance (based on F1 values): NB < KNN < Decision Tree < SVM < LDA < Logistic
+- Suggestions for increasing students' retention rate based on Logistic model:
+1. Give students more awards to encourage them to learn.
+2. Offer more financial aid for students with financial difficulties.
+3. Set up special courses for students according to age groups, such as setting up career-oriented courses for older students.
+4. Increase total loan amount for students to help them complete studies.
+
+# Method2
+Because we've tried the 8 models and some changes on variables for the cleaned dataset in method 1 and could only see few improvements, I started to thinking about another data processing method. In this method, I included as many as variables possible to avoid underfitting issues.
+In this method:
+- Except Dropout, every variable is numeric variable.
+- Distance from students' living address to the campus was calculated and added as a variable and zipcode, city, address was deleted.
+- Near-zero variance features were removed.
+- KNN imputation and standardization were applied.
+
+## Join Data
+
+```{r}
+# Read student's progress data
+df1 <- list.files(path = "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/SPD/", # Identify all CSV files
+                        pattern = "*.csv", full.names = TRUE) %>% 
+  lapply(read_csv) %>%                              # Store all files in list
+  reduce(full_join, by = "StudentID")               # Full-join data sets into one data set 
+write_csv(df1, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/ALL/JOIN/spd02.csv")
+
+# Read student's static data
+files2 <- list.files("F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/SSD/",full.names = TRUE)
+df2 <- map_dfr(files2, read_csv)
+# str(df2)
+# Write df2 to a new csv file
+write_csv(df2, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/ALL/JOIN/ssd02.csv")
+
+# Read student financial aid data
+df3 <- read_excel("F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/ALL/FA.xlsx")
+write_csv(df3, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/ALL/JOIN/fa02.csv")
+# str(df3)
+
+# Join all data
+files3 <- list.files("F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/ALL/JOIN/",full.names = TRUE)
+df4 <- map(files3, read_csv) %>% reduce(full_join, by = "StudentID")
+# str(df4)
+# Write df4 to a new csv file
+write_csv(df4, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/ALL/all.csv")
+
+
+all_data <- read_csv("F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/ALL/all.csv")
+# TrainLabels <- read_csv("baked_train.csv")
+all_data <- all_data %>% mutate(Zip=sprintf("%05d", Zip)) %>%  # 自动补齐为5位zip
+  mutate(Distance=zip_distance("08608",Zip)$distance) %>%  # 计算地理距离
+  mutate(Distance=ifelse(is.na(Distance),5000,Distance)) # 空值为国际生，距离为5000
+  
+# Numeric all data
+all_data <- mutate(all_data, MaritalStatus = recode_factor(MaritalStatus, "Married"="1", "Single" = "2", "Separated" = "3", "Divorced" = "4"))
+all_data <- mutate(all_data, FatherHighestGradeLevel = recode_factor(FatherHighestGradeLevel, "Middle School"="1", "Unknown" = "2", "High School" = "3", "College" = "4"))
+all_data <- mutate(all_data, MotherHighestGradeLevel = recode_factor(MotherHighestGradeLevel, "Middle School"="1", "Unknown" = "2", "High School" = "3", "College" = "4"))
+all_data$Housing <- as.character(all_data$Housing)
+all_data$Housing[all_data$Housing=="On Campus Housing"]<-1
+all_data$Housing[all_data$Housing=="Off Campus"]<-2
+all_data$Housing[all_data$Housing=="With Parent"]<-3
+all_data$Housing <- as.numeric(all_data$Housing)
+all_data$MaritalStatus <- as.numeric(all_data$MaritalStatus)
+all_data$FatherHighestGradeLevel <- as.numeric(all_data$FatherHighestGradeLevel)
+all_data$MotherHighestGradeLevel <- as.numeric(all_data$MotherHighestGradeLevel)
+# print(all_data)
+
+TestIDs <- read.csv("F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/SRCD/TestIDs.csv")
+TrainLabels <- read.csv("F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/DropoutTrainLabels.csv")
+
+KaggleTest <- TestIDs %>% 
+  inner_join(all_data,by="StudentID")
+KaggleTrain <- TrainLabels %>% 
+  inner_join(all_data,by="StudentID")
+
+# str(KaggleTest)
+# str(KaggleTrain)
+
+blueprint <- recipe(StudentID+Dropout ~ ., data = KaggleTrain) %>%
+  step_nzv(all_predictors()) %>%  # Remove near-zero variance features
+  step_impute_knn(all_predictors()) %>%  # KNN imputation
+  step_center(all_numeric(), -all_outcomes()) %>%  #Standardization
+  step_scale(all_numeric(), -all_outcomes()) 
+prepare <- prep(blueprint, training = KaggleTrain)
+baked_train <- bake(prepare, new_data = KaggleTrain)
+baked_test <- bake(prepare, new_data = KaggleTest)
+
+train_data <- baked_train %>% select(-Zip)
+test_data <- baked_test %>% select(-Zip)
+# str(test_data)
+
+train_data$Dropout <- as.factor(ifelse(train_data$Dropout==1,"Dropout", "In"))
+# str(train_data)
+
+set.seed(12345)
+colnames(train_data) <- make.names(colnames(train_data))
+colnames(test_data) <- make.names(colnames(test_data))
+
+```
+
+## Modelling
+
+- Our choice of models: Same as in Method 1, because the goal is to classify and predict whether students will dropout or not as accurate as possible, so we tried 6 classification models and 2 ensemble models.
+
+- The models we have used: Decision Tree Model, SVM Model, Logistic Model, LDA Model, KNN Model, Naive Bayes Model, Ranger Model (ensemble model) and Bagging Model (ensemble model).
+
+- Modelling issues:
+1. Overfitting: After trying out these 8 models, we found the F1 means of the two ensemble models was very high. So we think there might be overfitting issues, but it turned out that these two models could predict precisely and didn't have overfitting issues. 
+2. Data Leakage: Again, there is a data leakage issue, which is the variable Complete1, and this variable won't appear in the real-world data, 
+
+- Difficulties encountered:
+1. Different models need different input: This time, we turned all of the variables except Dropout to numeric variables and let numbers represent different divisions.
+2. Time-consuming issue: Random Forest Model was still quite time-consuming for this dataset, so we tried Ranger Model and Bagging Model instead.
+
+```{r}
+## MLE
+intrain <- createDataPartition(train_data$Dropout,p=0.75,list = FALSE)
+trctrl <- trainControl(method = "cv", number = 10)
+train <- train_data[intrain,]
+test <- train_data[-intrain,]
+# train$Dropout
+# str(train)
+## decision tree
+dtmodel <- train(Dropout ~ .-StudentID, 
+                data = train,
+                method = "rpart",
+                trControl=trctrl)
+# dtmodel
+pred_dt <- predict(dtmodel,test,type="raw")
+# pred_dt
+confusionMatrix(pred_dt,test$Dropout)
+F_meas(pred_dt,test$Dropout)
+treeImp <- varImp(dtmodel, scale = FALSE) # set scale=TRUE will make comparison easier
+treeImp
+
+## SVM
+# grid <- expand.grid(C=c(.1,1,5,10), degree=c(2,3,4), scale=c(1,2))
+# fit.svm <- train(Dropout ~.-StudentID,method="svmPoly",
+#                  tuneGrid=grid, trControl=trctrl,data=train)
+# pred.svmPo <- predict(fit.svm,test)
+# confusionMatrix(pred.svmPo,test$Dropout)
+svmmodel <- train(Dropout ~ .-StudentID, method="svmRadial",sigma =.2,data=train)
+pred_svm <- predict(svmmodel, test)
+confusionMatrix(pred_svm,test$Dropout)
+F_meas(pred_svm,test$Dropout)
+
+Dropout <- predict(svmmodel, test_data)
+# Dropout
+
+test_predicted <- test_data %>% mutate(Dropout) %>% select(StudentID, Dropout)
+test_predicted
+test_predicted$Dropout <- ifelse(test_predicted$Dropout=="Dropout", 1, 0)
+write_csv(test_predicted, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/predicted_svm.csv")
+
+## Logistic
+logitmodel <- train(Dropout ~ .-StudentID, method ="glm", preProcess=c('scale', 'center'), 
+                    data=train, 
+                    family=binomial(link='logit'))
+summary(logitmodel)
+pred_logit <- predict(logitmodel, test)
+confusionMatrix(pred_logit,test$Dropout)
+F_meas(pred_logit,test$Dropout)
+
+Dropout <- predict(logitmodel, test_data)
+# Dropout
+
+test_predicted <- test_data %>% mutate(Dropout) %>% select(StudentID, Dropout)
+# Dropout = ifelse(predictions_test=="Dropout", 1,0)
+# test_predicted
+test_predicted$Dropout <- ifelse(test_predicted$Dropout=="Dropout", 1, 0)
+write_csv(test_predicted, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/predicted_logit.csv")
+
+# LDA
+ldamodel <- train(Dropout ~ .-StudentID, method ="lda",data=train)
+pred_lda <- predict(ldamodel, test)
+confusionMatrix(pred_lda,test$Dropout)
+F_meas(pred_lda,test$Dropout)
+
+# NB
+nbmodel <- train(Dropout ~ .-StudentID, method ="nb",data=train)
+pred_nb <- predict(nbmodel, test)
+confusionMatrix(pred_nb,test$Dropout)
+F_meas(pred_nb,test$Dropout)
+
+# KNN
+knnmodel <- train(Dropout ~ .-StudentID, method ="knn",data=train,
+                  trControl=trctrl, preProcess=c('scale', 'center'))
+pred_knn <- predict(knnmodel, test)
+confusionMatrix(pred_knn,test$Dropout)
+F_meas(pred_knn,test$Dropout)
+
+
+# random forest
+rangermodel <- train(Dropout ~.-StudentID , 
+                    data = train,
+                    method = "ranger",
+                    trControl=trctrl)
+pred_ranger <- predict(rangermodel,test)
+confusionMatrix(pred_ranger,test$Dropout)
+F_meas(pred_ranger, test$Dropout)
+
+Dropout <- predict(rangermodel, test_data)
+Dropout
+
+test_predicted <- test_data %>% mutate(Dropout) %>% select(StudentID, Dropout)
+# Dropout = ifelse(predictions_test=="Dropout", 1,0)
+test_predicted
+test_predicted$Dropout <- ifelse(test_predicted$Dropout=="Dropout", 1, 0)
+write_csv(test_predicted, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/predicted_ranger.csv")
+
+# bagging
+bag_fit <- train(Dropout ~.-StudentID, data = train, method = "treebag",
+                 trControl=trctrl)
+bag_fit
+pred_bag <- predict(bag_fit, newdata = test)
+confusionMatrix(pred_bag,test$Dropout)
+#Calculate performance measures
+postResample(predictions,test$Dropout)
+#To see the importance of the variables
+bagImp <- varImp(bag_fit, scale=TRUE)
+bagImp
+F_meas(pred_bag, test$Dropout)
+
+Dropout <- predict(bag_fit, test_data)
+Dropout
+
+test_predicted <- test_data %>% mutate(Dropout) %>% select(StudentID, Dropout)
+# Dropout = ifelse(predictions_test=="Dropout", 1,0)
+test_predicted
+test_predicted$Dropout <- ifelse(test_predicted$Dropout=="Dropout", 1, 0)
+write_csv(test_predicted, "F:/Mine/0Mine/TC-22fall/HUDK4050 - Core Mthds Educ Data Mining/Kaggle/predicted_bag.csv")
+
+```
+
+## Conclusion
+- Models' performance (based on F1 values): NB < Decision Tree < KNN < LDA < Logistic < SVM < Bagging < Ranger
+- Suggestions for increasing students' retention rate:
+1. Pay more attention to students who are at their last year. 
+2. Give students more supports to help them improve their GPA.
+3. Give students more supports to help them with developmental Math and English.
+4. Pay more attention to students’  major status in their last year.
+5. Do further research on the relationship between students’ enrollment status and dropout.
+6. Support students to transfer their prior college credits.
+
+
+
